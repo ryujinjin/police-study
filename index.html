@@ -641,7 +641,7 @@
   <div class="modal promo" role="alertdialog" aria-modal="true" aria-labelledby="promoTitle">
     <span class="promo-spark s1" aria-hidden="true">✦</span>
     <span class="promo-spark s2" aria-hidden="true">✦</span>
-    <img class="promo-fig" src="./assets/char-thumbsup.png" alt="" width="92" height="177" decoding="async">
+    <img class="promo-fig" src="./assets/char-thumbsup.png" alt="" width="92" height="177" loading="lazy" decoding="async">
     <p class="eyebrow">승진했어요!</p>
     <h2 id="promoTitle">순경 → 경장</h2>
     <div class="promo-insignia" id="promoInsignia" aria-hidden="true"></div>
@@ -2301,6 +2301,12 @@
   ensureDay();
   saveState();
   renderAll();
+
+  /* 리액션용 캐릭터 얼굴은 미리 받아 두어 전환이 끊기지 않게 */
+  ['char-thumbsup-face.png', 'char-cheer-face.png'].forEach(function (f) {
+    var im = new Image();
+    im.src = './assets/' + f;
+  });
 })();
 </script>
 </body>
