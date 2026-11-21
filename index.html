@@ -252,6 +252,16 @@
   .nav-row{display:flex;align-items:center;gap:8px;margin-top:9px}
   .nav-row .btn{flex:0 0 auto;width:auto;min-height:44px;padding:8px 15px;font-size:13px}
   .nav-count{flex:1;text-align:center;font-size:12.5px;font-weight:800;color:var(--ink2);font-variant-numeric:tabular-nums}
+  /* 사지선다 이전·다음 : 스크롤해도 화면 아래에 붙어 자유롭게 이동 */
+  .qnav{
+    position:sticky;bottom:calc(var(--tabh) + env(safe-area-inset-bottom) + 8px);z-index:16;
+    display:flex;align-items:center;gap:8px;margin-top:14px;padding:6px;
+    background:var(--card);border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 6px 22px -12px rgba(15,23,42,.55);
+  }
+  .qnav .btn{flex:0 0 auto;width:auto;min-height:44px;padding:8px 14px;font-size:13.5px;border-radius:11px}
+  .qnav .btn-primary{flex:1 1 auto;min-width:0;padding:8px 12px}
+  .qnav-count{flex:0 0 auto;min-width:70px;text-align:center;font-size:12.5px;font-weight:800;color:var(--ink2);font-variant-numeric:tabular-nums}
   .empty{text-align:center;padding:30px 16px}
   .empty .eico{font-size:30px;margin-bottom:8px}
   .empty h3{font-size:14.5px}
@@ -309,6 +319,7 @@
   .score .pct{font-size:40px;font-weight:800;letter-spacing:-.04em;line-height:1.1;font-variant-numeric:tabular-nums}
   .score .pct small{font-size:17px;font-weight:800;color:var(--muted)}
   .score .st{margin-top:2px;font-size:12.5px;color:var(--ink2);font-weight:700;font-variant-numeric:tabular-nums}
+  .score .st-sub{margin:3px 0 0;font-size:11.5px;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
   .score .msg{margin-top:9px;font-size:13px;color:var(--ink2);line-height:1.55}
 
   /* ---------- wrong note ---------- */
@@ -1749,7 +1760,7 @@
       order: state.settings.order,
       ids: ids,
       idx: 0,
-      answer: null,
+      responses: {},
       correct: 0,
       done: ids.length === 0,
       sessionWrong: [],
@@ -1759,6 +1770,13 @@
       lastDelta: 0,
       lastPenalty: 0
     };
+  }
+
+  function answeredN(q) {
+    if (!q || !q.responses) return 0;
+    var n = 0;
+    q.ids.forEach(function (id) { if (q.responses[id] != null) n += 1; });
+    return n;
   }
 
   function quizBuddy(q, answered, ok) {
@@ -1891,9 +1909,9 @@
         q.order = o[0];
         state.settings.order = o[0];
         saveState();
-        if (!q.done && q.answer === null) {
-          /* 진행 중이면 같은 범위로 다시 섞기 */
-          startQuiz(q.mode);
+        if (!q.done && !answeredN(q)) {
+          /* 아직 푼 문항이 없으면 같은 범위로 다시 섞기 */
+          startQuiz(q.mode, q.ids.slice(), { label: q.label });
         } else {
           q.order = o[0];
         }
@@ -1924,9 +1942,10 @@
 
     var item = Q_BY_ID[q.ids[q.idx]];
     if (!item) { startQuiz(q.mode, q.ids.slice(), { label: q.label }); renderQuiz(); return; }
-    var answered = q.answer !== null;
+    var resp = q.responses[item.id];
+    var answered = resp != null;
     var excluded = item.isG && item.law === 2;
-    var ok = answered && !excluded && q.answer === item.answer_index;
+    var ok = answered && !excluded && resp.p === item.answer_index;
 
     /* 진행 */
     var meta = el('div', 'qmeta');
@@ -1936,7 +1955,7 @@
     meta.appendChild(left);
     meta.appendChild(el('span', 'qm-r', (q.idx + 1) + ' / ' + q.ids.length + ' · 정답 ' + q.correct));
     root.appendChild(meta);
-    root.appendChild(progressBar(pct(q.idx + (answered ? 1 : 0), q.ids.length), ''));
+    root.appendChild(progressBar(pct(answeredN(q), q.ids.length), ''));
 
     /* 캐릭터 버디 */
     var bb = quizBuddy(q, answered, ok);
@@ -1972,7 +1991,7 @@
       if (answered) {
         b.disabled = true;
         if (i === item.answer_index) b.className = 'choice correct';
-        else if (i === q.answer) b.className = 'choice wrong';
+        else if (i === resp.p) b.className = 'choice wrong';
         else b.className = 'choice dim';
       } else {
         b.addEventListener('click', function () { answerQuiz(i); });
@@ -2056,23 +2075,43 @@
           renderBadges();
         }));
       }
-      var next = btn('btn btn-primary', (q.idx + 1 >= q.ids.length ? '결과 보기' : '다음 문제 ›'), function () {
-        if (q.idx + 1 >= q.ids.length) {
-          q.done = true;
-        } else {
-          q.idx += 1;
-          q.answer = null;
-        }
-        q.anim = false;
-        q.lastDelta = 0;
-        q.lastPenalty = 0;
-        renderQuiz();
-        window.scrollTo(0, 0);
-      });
-      if (after.firstChild) next.style.marginTop = '9px';
-      after.appendChild(next);
-      root.appendChild(after);
+      if (after.firstChild) { after.style.marginBottom = '9px'; root.appendChild(after); }
     }
+    root.appendChild(quizNav(q));
+  }
+
+  function quizNav(q) {
+    var last = q.idx + 1 >= q.ids.length;
+    var nav = el('div', 'qnav');
+    var prev = btn('btn btn-line', '◀ 이전', function () {
+      if (q.idx <= 0) return;
+      q.idx -= 1;
+      q.anim = false;
+      q.lastDelta = 0;
+      q.lastPenalty = 0;
+      renderQuiz();
+      window.scrollTo(0, 0);
+    }, { 'aria-label': '이전 문제' });
+    if (q.idx <= 0) {
+      prev.setAttribute('disabled', 'disabled');
+      prev.setAttribute('aria-disabled', 'true');
+    }
+    var next = btn('btn btn-primary', last ? '결과 보기' : '다음 ▶', function () {
+      if (last) {
+        q.done = true;
+      } else {
+        q.idx += 1;
+      }
+      q.anim = false;
+      q.lastDelta = 0;
+      q.lastPenalty = 0;
+      renderQuiz();
+      window.scrollTo(0, 0);
+    }, { 'aria-label': last ? '결과 보기' : '다음 문제' });
+    nav.appendChild(prev);
+    nav.appendChild(el('div', 'qnav-count', (q.idx + 1) + ' / ' + q.ids.length));
+    nav.appendChild(next);
+    return nav;
   }
 
   function stripNote(note) {
@@ -2081,11 +2120,12 @@
 
   function answerQuiz(i) {
     var q = ui.quiz;
-    if (!q || q.answer !== null || q.done) return;
+    if (!q || q.done) return;
     var item = Q_BY_ID[q.ids[q.idx]];
     if (!item) return;
+    if (q.responses[item.id] != null) return;   /* 이미 푼 문항은 중복 집계하지 않음 */
     ensureDay();
-    q.answer = i;
+    q.responses[item.id] = { p: i };
     var excluded = item.isG && item.law === 2;
     var ok = !excluded && (i === item.answer_index);
     if (excluded) {
@@ -2149,9 +2189,14 @@
 
   function renderQuizResult(root) {
     var q = ui.quiz;
-    var graded = (q.src === 'gyeolchul' && q.counted) ? q.counted : q.ids.length;
+    var answeredTotal = answeredN(q);
+    var graded = q.ids.filter(function (id) {
+      var it = Q_BY_ID[id];
+      return q.responses[id] != null && !(it && it.isG && it.law === 2);
+    }).length;
     var total = graded || 1;
-    var skipped = q.ids.length - graded;
+    var excludedN = answeredTotal - graded;
+    var skipped = q.ids.length - answeredTotal;
     var p = pct(q.correct, total);
     var card = el('section', 'card sec score');
     card.appendChild(el('div', 'eyebrow', 'QUIZ RESULT'));
@@ -2165,10 +2210,17 @@
     var big = el('div', 'pct', String(p));
     big.appendChild(el('small', null, '%'));
     card.appendChild(big);
-    card.appendChild(el('div', 'st', '정답 ' + q.correct + ' / ' + (graded || 0) + '문항' + (skipped ? ' · 채점 제외 ' + skipped : '')));
+    card.appendChild(el('div', 'st', '푼 문항 ' + answeredTotal + ' / 전체 ' + q.ids.length + ' · 정답 ' + q.correct + ' / ' + graded + '문항'));
+    if (skipped || excludedN) {
+      var subline = [];
+      if (skipped) subline.push('안 푼 문항 ' + skipped);
+      if (excludedN) subline.push('채점 제외 ' + excludedN);
+      card.appendChild(el('p', 'st-sub', subline.join(' · ')));
+    }
 
     var msg = '한 번 더 돌리면 훨씬 오래 남아요.';
-    if (p === 100) msg = '전부 정답이에요. 이 범위는 마무리해도 좋아요.';
+    if (!answeredTotal) msg = '아직 푼 문항이 없어요. 문제를 풀거나 이전·다음으로 넘겨 보세요.';
+    else if (p === 100) msg = '전부 정답이에요. 이 범위는 마무리해도 좋아요.';
     else if (p >= 80) msg = '합격선 감각이에요. 틀린 문항만 눌러 정리해요.';
     else if (p >= 60) msg = '절반은 넘겼어요. 선지별 근거를 한 번 더 읽어 보세요.';
     else msg = '틀린 문항이 오답노트에 저장됐어요. 해설부터 다시 보면 빨라요.';
