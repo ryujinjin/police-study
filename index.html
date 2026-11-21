@@ -1800,7 +1800,7 @@
       rx.appendChild(rxa);
       var rxt = el('div', 'buddy-text');
       var badLine = (q.wrongStreak >= 2)
-        ? (q.lastPenalty < 0 ? (q.wrongStreak + '연속 오답 … ' + P_BAD + 'P') : (q.wrongStreak + '연속 오답 … 포인트는 0P에서 멈춰요'))
+        ? (q.lastPenalty < 0 ? (q.wrongStreak + '연속 오답 … ' + q.lastPenalty + 'P') : (q.wrongStreak + '연속 오답 … 포인트는 0P에서 멈춰요'))
         : '아쉬워요, 해설 한 번 보자';
       rxt.appendChild(el('p', 'rx-line', ok
         ? ('정답! +' + P_QUIZ + 'P' + (q.combo >= 2 ? ' · ' + q.combo + '콤보 🔥' : ''))
