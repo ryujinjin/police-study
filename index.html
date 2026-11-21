@@ -558,6 +558,149 @@
     .buddy-av{flex-basis:40px;width:40px;height:40px}
     .buddy-line{font-size:12px}
   }
+
+  /* ================= 캐릭터 버디 · 명언 · 포인트/계급 ================= */
+  /* 명언 롤링 */
+  .quote{margin-top:2px;margin-bottom:12px}
+  .quote-btn{
+    display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+    padding:10px 12px;border-radius:15px;border:1px dashed #c8d6fb;
+    background:linear-gradient(135deg,#f1f5ff 0%,#fdf6fb 100%);
+    color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent;
+    box-shadow:0 8px 20px -18px rgba(29,58,143,.8);
+  }
+  .quote-btn:active{filter:brightness(.985)}
+  .quote-ic{flex:0 0 auto;font-size:12px;color:#8fa6e0;line-height:1}
+  .quote-text{
+    flex:1;min-width:0;font-size:13px;font-weight:700;line-height:1.45;letter-spacing:-.02em;
+    min-height:2.9em;display:flex;align-items:center;
+    transition:opacity .22s ease,transform .22s ease;
+  }
+  .quote-text.out{opacity:0;transform:translateY(-3px)}
+  .quote-hint{
+    flex:0 0 auto;font-size:10px;font-weight:800;color:#9aa8c7;background:#fff;
+    border:1px solid #e2e9fa;padding:2px 6px;border-radius:99px;line-height:1.5;
+  }
+  html[data-theme="dark"] .quote-btn{background:linear-gradient(135deg,#18223c 0%,#221a30 100%);border-color:#33415f}
+  html[data-theme="dark"] .quote-hint{background:#0f1522;border-color:#2b3550;color:#7f8ba6}
+
+  /* 히어로 · 계급 */
+  .hero{position:relative;overflow:hidden;padding:14px 15px 15px}
+  .hero::after{
+    content:"";position:absolute;right:-46px;top:-58px;width:170px;height:170px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.22),rgba(255,255,255,0) 66%);pointer-events:none;
+  }
+  .hero::before{
+    content:"";position:absolute;left:-34px;bottom:-64px;width:150px;height:150px;border-radius:50%;
+    background:radial-gradient(circle,rgba(164,196,255,.3),rgba(164,196,255,0) 70%);pointer-events:none;
+  }
+  .hero-top{position:relative;display:flex;align-items:flex-start;gap:8px}
+  .hero-copy{flex:1 1 auto;min-width:0}
+  .hero-fig{flex:0 0 74px;width:74px;position:relative;margin-bottom:-6px;align-self:flex-end}
+  .hero-fig img{display:block;width:100%;height:auto;filter:drop-shadow(0 7px 11px rgba(4,10,30,.45))}
+  .rank-line{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:1px 0 0}
+  .rank-name{font-size:23px;font-weight:900;letter-spacing:-.045em;line-height:1.15}
+  .insignia{display:inline-flex;align-items:center;gap:2px}
+  .insignia svg{width:13px;height:13px;display:block;flex:0 0 auto}
+  .hero-greet{margin:6px 0 0;font-size:12px;font-weight:600;color:rgba(255,255,255,.8);line-height:1.45}
+  .pscore{display:flex;align-items:baseline;gap:3px;margin-top:9px;flex-wrap:wrap}
+  .pscore b{font-size:20px;font-weight:900;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .pscore span{font-size:11px;font-weight:800;color:rgba(255,255,255,.72)}
+  .pscore .earn{
+    margin-left:4px;align-self:center;font-size:10.5px;font-weight:800;color:#ffe1ab;
+    background:rgba(255,255,255,.15);padding:2px 7px;border-radius:99px;
+  }
+  .rank-bar{height:8px;border-radius:99px;background:rgba(255,255,255,.2);overflow:hidden;margin-top:10px}
+  .rank-bar > i{
+    display:block;height:100%;border-radius:99px;
+    background:linear-gradient(90deg,#ffd98a,#f7b733);
+    transition:width .55s cubic-bezier(.2,.8,.2,1);
+  }
+  .rank-next{margin-top:6px;font-size:11px;font-weight:700;color:rgba(255,255,255,.82);line-height:1.45}
+
+  /* 하루 할당량 */
+  .mission .mhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+  .mission .bonus{
+    flex:0 0 auto;font-size:10.5px;font-weight:800;color:var(--warn);background:var(--warnbg);
+    padding:3px 8px;border-radius:99px;line-height:1.5;
+  }
+  .mission.done{border-color:#bfe8d3}
+  .mission.done .bonus{color:var(--good);background:var(--goodbg)}
+  .mission-foot{margin-top:12px;font-size:11.5px;font-weight:700;color:var(--ink2);line-height:1.5}
+  .mission.done .mission-foot{color:var(--good)}
+  html[data-theme="dark"] .mission.done{border-color:#1f4635}
+
+  /* 캐릭터 버디 바 */
+  .buddy{
+    display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:15px;
+    background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);
+    margin-bottom:10px;position:relative;
+  }
+  .buddy-av{
+    position:relative;flex:0 0 44px;width:44px;height:44px;border-radius:50%;overflow:hidden;
+    background:linear-gradient(150deg,#e9f0ff,#f7ecff);
+  }
+  .buddy-av img{display:block;width:100%;height:100%;object-fit:cover}
+  .buddy.good .buddy-av{box-shadow:0 0 0 2px rgba(25,160,106,.5)}
+  .buddy.cheer .buddy-av{box-shadow:0 0 0 2px rgba(255,138,128,.5)}
+  .buddy.pop .buddy-av{animation:buddyPop .5s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes buddyPop{0%{transform:scale(.82) rotate(-7deg)}55%{transform:scale(1.12) rotate(4deg)}100%{transform:none}}
+  .buddy-text{flex:1;min-width:0}
+  .buddy-line{font-size:12.5px;font-weight:800;letter-spacing:-.02em;line-height:1.4}
+  .buddy-sub{margin-top:1px;font-size:10.5px;font-weight:700;color:var(--muted);line-height:1.4}
+  .float-pt{
+    position:absolute;left:22px;top:0;font-size:11px;font-weight:900;color:var(--good);
+    white-space:nowrap;pointer-events:none;z-index:3;
+    animation:floatUp 1.35s ease-out forwards;
+  }
+  .float-pt.minus{color:var(--bad)}
+  @keyframes floatUp{
+    0%{opacity:0;transform:translate(-50%,6px) scale(.9)}
+    22%{opacity:1;transform:translate(-50%,-8px) scale(1)}
+    100%{opacity:0;transform:translate(-50%,-30px) scale(1)}
+  }
+  html[data-theme="dark"] .buddy-av{background:linear-gradient(150deg,#212c47,#2a2138)}
+
+  /* 응답 영역 리액션 */
+  .reaction{
+    position:relative;display:flex;align-items:center;gap:9px;margin:0 0 11px;padding:8px 10px;
+    border-radius:12px;background:var(--bg2);border:1px solid var(--line);
+  }
+  .reaction.good{background:var(--goodbg);border-color:rgba(15,122,78,.22)}
+  .reaction.cheer{background:var(--warnbg);border-color:rgba(154,90,6,.22)}
+  .rx-av{flex:0 0 32px;width:32px;height:32px;border-radius:50%;overflow:hidden;background:#eef3ff}
+  .rx-av img{display:block;width:100%;height:100%;object-fit:cover}
+  .rx-line{font-size:12px;font-weight:800;line-height:1.4}
+  .rx-sub{margin-top:1px;font-size:10.5px;font-weight:700;color:var(--muted);line-height:1.4}
+
+  /* 결과 화면 캐릭터 */
+  .score-fig{display:block;width:76px;height:auto;margin:2px auto 0}
+
+  /* 승진 축하 */
+  .overlay.center{align-items:center;padding:20px}
+  .modal.promo{text-align:center;padding:18px 18px 15px;border-radius:20px;position:relative;overflow:hidden}
+  .promo-fig{display:block;width:92px;height:auto;margin:0 auto 2px;filter:drop-shadow(0 8px 12px rgba(15,23,42,.22))}
+  .modal.promo .eyebrow{color:#d99b00}
+  .promo-insignia{display:flex;justify-content:center;gap:3px;margin:7px 0 3px}
+  .promo-insignia svg{width:14px;height:14px}
+  .modal.promo h2{font-size:18px}
+  .modal.promo .promo-note{margin-top:8px;font-size:12.5px;color:var(--ink2);line-height:1.6}
+  .promo-spark{position:absolute;font-size:15px;opacity:.85;animation:sparkle 1.9s ease-in-out infinite alternate}
+  .promo-spark.s1{left:16px;top:22px}
+  .promo-spark.s2{right:16px;top:52px;animation-delay:.5s}
+  @keyframes sparkle{from{transform:scale(.8);opacity:.35}to{transform:scale(1.15);opacity:.95}}
+
+  @media (max-width:360px){
+    .rank-name{font-size:20px}
+    .pscore b{font-size:18px}
+    .hero-fig{flex-basis:64px;width:64px}
+    .hero-greet{font-size:11.5px}
+    .quote-text{font-size:12px}
+    .quote-hint{display:none}
+    .buddy{gap:8px;padding:7px 9px}
+    .buddy-av{flex-basis:40px;width:40px;height:40px}
+    .buddy-line{font-size:12px}
+  }
 </style>
 </head>
 <body>
@@ -642,6 +785,21 @@
     <span class="promo-spark s1" aria-hidden="true">✦</span>
     <span class="promo-spark s2" aria-hidden="true">✦</span>
     <img class="promo-fig" src="./assets/char-thumbsup.png" alt="" width="92" height="182" decoding="async">
+    <p class="eyebrow">승진했어요!</p>
+    <h2 id="promoTitle">순경 → 경장</h2>
+    <div class="promo-insignia" id="promoInsignia" aria-hidden="true"></div>
+    <p class="promo-note" id="promoNote"></p>
+    <div class="row">
+      <button type="button" class="btn btn-primary" id="promoOk">좋아, 계속 갈게!</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay center" id="promoOverlay" hidden>
+  <div class="modal promo" role="alertdialog" aria-modal="true" aria-labelledby="promoTitle">
+    <span class="promo-spark s1" aria-hidden="true">✦</span>
+    <span class="promo-spark s2" aria-hidden="true">✦</span>
+    <img class="promo-fig" src="./assets/char-thumbsup.png" alt="" width="92" height="177" decoding="async">
     <p class="eyebrow">승진했어요!</p>
     <h2 id="promoTitle">순경 → 경장</h2>
     <div class="promo-insignia" id="promoInsignia" aria-hidden="true"></div>
@@ -1223,7 +1381,7 @@
     if (nx) {
       var base = rk.pts, span = nx.pts - base;
       ratio = Math.max(0, Math.min(100, ((pts - base) / span) * 100));
-      nextLabel = '다음 ' + nx.name + '까지 ' + fmt(nx.pts - pts) + 'P · ' + fmt(nx.pts) + 'P에서 승진';
+      nextLabel = '다음 ' + nx.name + '까지 ' + fmt(nx.pts - pts) + 'P';
     } else {
       ratio = 100;
       nextLabel = '최고 계급이에요. 이제 실전만 남았어요!';
@@ -1241,8 +1399,8 @@
     var img = el('img');
     img.src = BODY_IMG.base;
     img.alt = '경찰 제복을 입고 경례하는 캐릭터';
-    img.width = 78;
-    img.height = 154;
+    img.width = 74;
+    img.height = 146;
     img.decoding = 'async';
     fig.appendChild(img);
     top.appendChild(fig);
@@ -1598,7 +1756,7 @@
       saveState();
       var d1 = dayStats();
       reaction = first
-        ? { kind: 'good', line: '정답! +' + delta + 'P', pop: true, float: '+' + delta + 'P',
+        ? { kind: 'good', line: '외웠어요! +' + delta + 'P', pop: true, float: '+' + delta + 'P',
             sub: '오늘 암기 ' + Math.min(d1.cards, GOAL_CARDS) + '/' + GOAL_CARDS + (d1.cards >= GOAL_CARDS ? ' · 오늘 몫 완료!' : '') }
         : { kind: 'good', line: '또 봤네, 좋아!', pop: true,
             sub: '오늘 이미 받은 카드라 포인트는 그대로 · ' + fmt(state.pts || 0) + 'P' };
@@ -1680,16 +1838,14 @@
     if (ok) {
       return {
         kind: 'good',
-        line: '정답! +' + P_QUIZ + 'P' + (q.combo >= 2 ? ' · ' + q.combo + '콤보 🔥' : ''),
-        sub: '오늘 사지선다 ' + qn + '/' + GOAL_QUIZ + ' · 보유 ' + fmt(state.pts || 0) + 'P'
+        line: '좋아, 해설도 확인!',
+        sub: (q.combo >= 2 ? q.combo + '콤보 🔥 · ' : '') + '오늘 사지선다 ' + qn + '/' + GOAL_QUIZ
       };
     }
     return {
       kind: 'cheer',
-      line: q.wrongStreak >= 2 ? (q.wrongStreak + '연속 오답… ' + P_BAD + 'P') : '아쉬워, 해설 한 번 보자',
-      sub: q.wrongStreak >= 2
-        ? '보유 ' + fmt(state.pts || 0) + 'P · 다음엔 맞혀보자!'
-        : '오늘 사지선다 ' + qn + '/' + GOAL_QUIZ + ' · 오답노트에 담았어'
+      line: '해설 보면서 정리하자',
+      sub: '오늘 사지선다 ' + qn + '/' + GOAL_QUIZ + ' · 오답노트에 담았어'
     };
   }
 
@@ -1801,9 +1957,12 @@
       rxa.appendChild(faceImg(ok ? 'good' : 'cheer', 32));
       rx.appendChild(rxa);
       var rxt = el('div', 'buddy-text');
+      var badLine = (q.wrongStreak >= 2)
+        ? (q.lastPenalty < 0 ? (q.wrongStreak + '연속 오답 … ' + P_BAD + 'P') : (q.wrongStreak + '연속 오답 … 포인트는 0P에서 멈춰요'))
+        : '아쉬워요, 해설 한 번 보자';
       rxt.appendChild(el('p', 'rx-line', ok
         ? ('정답! +' + P_QUIZ + 'P' + (q.combo >= 2 ? ' · ' + q.combo + '콤보 🔥' : ''))
-        : (q.wrongStreak >= 2 ? (q.wrongStreak + '연속 오답 … ' + P_BAD + 'P') : '아쉬워요, 해설 한 번 보자')));
+        : badLine));
       rxt.appendChild(el('p', 'rx-sub', ok
         ? ('오늘 사지선다 ' + dq + '/' + GOAL_QUIZ + ' · 보유 ' + fmt(state.pts || 0) + 'P')
         : ('오답노트에 담았어요 · 보유 ' + fmt(state.pts || 0) + 'P')));
