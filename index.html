@@ -1148,6 +1148,8 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
 
   var state = loadState();
   if (!SUBJ_NAME[state.settings.subject]) state.settings.subject = 'all';
+  /* 승진 기준이 바뀌어도 이미 본 계급 기록 때문에 새 승진 알림을 놓치지 않도록 보정 */
+  state.rankSeen = Math.min(state.rankSeen || 0, rankIndexFor(Math.max(0, state.pts || 0)));
 
   var ui = {
     tab: 'home',
