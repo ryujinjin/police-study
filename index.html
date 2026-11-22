@@ -2206,7 +2206,7 @@ html[data-theme="dark"] .nchip[aria-pressed="true"]{background:#2f5bd0;border-co
     var head = el('section', 'card');
     head.appendChild(el('p', 'eyebrow', 'CASE FILE'));
     head.appendChild(el('h3', null, '오답 수사파일 · ' + SUBJ_NAME[ui.subject]));
-    head.appendChild(el('p', 'muted', 'OX에서 적발된 지문 ' + oxw.length + '건 · 단원별로 다시 검문할 수 있어요'));
+    head.appendChild(el('p', 'muted', 'OX에서 적발된 지문 ' + oxw.length + '건 · 단원별로 모아 두었어요. 지문을 누르면 바로 재검문합니다.'));
 
     var acts = el('div', 'row');
     acts.style.marginTop = '12px';
@@ -2231,7 +2231,7 @@ html[data-theme="dark"] .nchip[aria-pressed="true"]{background:#2f5bd0;border-co
     if (oxw.length) {
       var secO = el('section', 'card sec');
       secO.appendChild(el('h3', null, 'OX 적발 지문'));
-      groupBySubject(oxw).forEach(function (g) {
+      groupByUnit(oxw).forEach(function (g) {
         secO.appendChild(buildWrongGroup(g.name, g.items.map(function (item) {
           var row = el('div', 'wn-item wn-stack');
           var main = el('button', 'wn-main wn-card');
@@ -2270,6 +2270,17 @@ html[data-theme="dark"] .nchip[aria-pressed="true"]{background:#2f5bd0;border-co
     g.appendChild(el('h3', null, name));
     rows.forEach(function (r) { g.appendChild(r); });
     return g;
+  }
+
+  function groupByUnit(items) {
+    var out = [];
+    OX_UNIT_ORDER.forEach(function (u) {
+      var list = items.filter(function (x) { return x.unit === u; });
+      if (list.length) out.push({ name: u, items: list });
+    });
+    var rest = items.filter(function (x) { return OX_UNIT_ORDER.indexOf(x.unit) < 0; });
+    if (rest.length) out.push({ name: '기타', items: rest });
+    return out;
   }
 
   function groupBySubject(items) {
