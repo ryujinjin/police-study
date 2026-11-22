@@ -775,6 +775,23 @@ html[data-theme="dark"] .nchip[aria-pressed="true"]{background:#2f5bd0;border-co
 .oxflag:active{transform:scale(.97)}
 html[data-theme="dark"] .oxflag{color:#ff9d95;border-color:#5c2f2c}
 
+/* ===== 🚨 오답 재수사 전용 모드 (수사파일 지문만 이어서) ===== */
+.wnmode{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:9px 11px;border-radius:14px;
+  background:linear-gradient(135deg,#fdecea,#fff7f6);border:1.5px solid #f0c7c3}
+.wnmode-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.wnmode-tx b{font-size:12.5px;font-weight:900;letter-spacing:-.02em;color:#b3261e;word-break:keep-all}
+.wnmode-tx span{font-size:10.5px;font-weight:700;color:#a1554f;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.wnmode-btns{flex:0 0 auto;display:flex;gap:5px}
+.wnmode .btn-sm{min-height:34px;padding:6px 9px;font-size:11.5px;background:rgba(255,255,255,.85)}
+html[data-theme="dark"] .wnmode{background:#3a1f1d;border-color:#5c2f2c}
+html[data-theme="dark"] .wnmode-tx b{color:#ff9d95}
+html[data-theme="dark"] .wnmode-tx span{color:#e0a9a4}
+html[data-theme="dark"] .wnmode .btn-sm{background:rgba(255,255,255,.08)}
+@media(max-width:360px){
+  .wnmode{padding:8px 9px;gap:6px}
+  .wnmode .btn-sm{padding:6px 7px;font-size:11px}
+}
+
 /* ===== 다시풀기 버튼 (하단 고정 바) ===== */
 .qnav .btn-retry{padding:8px 11px;white-space:nowrap}
 @media(max-width:400px){
@@ -1876,52 +1893,62 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
     clear(root);
     if (!OX.length) { root.appendChild(emptyBlock('OX 지문이 없어요', '데이터를 확인해 주세요.', null, null)); return; }
     var mode = state.settings.oxMode || 'unit';
+    var cur = (ui.ox && ui.ox.subject === ui.subject) ? ui.ox : null;
+    var wrongMode = !!(cur && cur.mode === 'wrongnote' && cur.ids && cur.ids.length);
 
-    /* 모드 선택 */
-    var bar = el('div', 'quizbar');
-    var seg = el('div', 'seg');
-    [['unit', '단원별'], ['random', '랜덤']].forEach(function (o) {
-      var b = el('button', null, o[1]);
-      b.type = 'button';
-      b.setAttribute('aria-pressed', String(mode === o[0]));
-      b.addEventListener('click', function () {
-        if (mode === o[0]) return;
-        state.settings.oxMode = o[0];
-        ui.oxUnit = '';
-        ui.ox = null;
-        saveState();
-        startOx();
-        renderOx();
+    if (wrongMode) {
+      root.appendChild(wrongModeBar(cur));
+    } else {
+      /* 모드 선택 */
+      var bar = el('div', 'quizbar');
+      var seg = el('div', 'seg');
+      [['unit', '단원별'], ['random', '랜덤']].forEach(function (o) {
+        var b = el('button', null, o[1]);
+        b.type = 'button';
+        b.setAttribute('aria-pressed', String(mode === o[0]));
+        b.addEventListener('click', function () {
+          if (mode === o[0]) return;
+          state.settings.oxMode = o[0];
+          ui.oxUnit = '';
+          ui.ox = null;
+          saveState();
+          startOx();
+          renderOx();
+        });
+        seg.appendChild(b);
       });
-      seg.appendChild(b);
-    });
-    bar.appendChild(seg);
-    if (mode === 'unit' && ui.oxUnit) {
-      bar.appendChild(btn('btn btn-line btn-sm', '↩ 단원 선택', function () {
-        ui.oxUnit = '';
-        ui.ox = null;
+      bar.appendChild(seg);
+      if (mode === 'unit' && ui.oxUnit) {
+        bar.appendChild(btn('btn btn-line btn-sm', '↩ 단원 선택', function () {
+          ui.oxUnit = '';
+          ui.ox = null;
+          renderOx();
+          window.scrollTo(0, 0);
+        }));
+      }
+      bar.appendChild(btn('btn btn-line btn-sm', '↻ 처음부터', function () {
+        startOx();
         renderOx();
         window.scrollTo(0, 0);
       }));
-    }
-    bar.appendChild(btn('btn btn-line btn-sm', '↻ 처음부터', function () {
-      startOx();
-      renderOx();
-      window.scrollTo(0, 0);
-    }));
-    root.appendChild(bar);
+      root.appendChild(bar);
 
-    if (mode === 'unit' && !ui.oxUnit) { renderOxUnitPicker(root); return; }
+      if (mode === 'unit' && !ui.oxUnit) { renderOxUnitPicker(root); return; }
+    }
 
     if (!ui.ox || ui.ox.subject !== ui.subject ||
-        (ui.ox.mode !== 'custom' && (ui.ox.mode !== mode ||
+        (ui.ox.mode !== 'custom' && ui.ox.mode !== 'wrongnote' && (ui.ox.mode !== mode ||
           (mode === 'unit' && ui.ox.unit !== ui.oxUnit)))) startOx();
     var q = ui.ox;
+    var isWrongSession = q.mode === 'wrongnote';
 
     if (q.done) { renderOxResult(root); return; }
 
     var item = OX_BY_ID[q.ids[q.idx]];
-    if (!item) { startOx(); renderOx(); return; }
+    if (!item) {
+      if (isWrongSession) { go('wrong'); return; }
+      startOx(); renderOx(); return;
+    }
     var r = q.resp[item.id];
     var answered = !!r;
     var ok = answered && (r.pick === item.answer);
@@ -1929,10 +1956,12 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
     var meta = el('div', 'qmeta');
     var left = el('div');
     left.appendChild(el('span', 'pill', item.subjectName));
-    if (mode === 'random' && item.unit) left.appendChild(el('span', 'pill unit', item.unit));
+    if ((mode === 'random' || isWrongSession) && item.unit) left.appendChild(el('span', 'pill unit', item.unit));
     if (item.badge) left.appendChild(el('span', 'pill new2026', '🆕 ' + item.badge));
     meta.appendChild(left);
-    meta.appendChild(el('span', 'qm-r', (q.idx + 1) + ' / ' + q.ids.length + ' · 통과 ' + q.combo));
+    meta.appendChild(el('span', 'qm-r', isWrongSession
+      ? (q.idx + 1) + ' / ' + q.ids.length + ' · 수사파일'
+      : (q.idx + 1) + ' / ' + q.ids.length + ' · 통과 ' + q.combo));
     root.appendChild(meta);
     root.appendChild(progressBar(pct(oxAnswered(q), q.ids.length), ''));
 
@@ -1942,7 +1971,7 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
     /* 지문 카드 */
     var card = el('section', 'card sec oxcard');
     var cbadges = el('div', 'oxbadges');
-    if (mode === 'unit' && item.unit) cbadges.appendChild(el('span', 'pill unit', item.unit));
+    if ((mode === 'unit' || isWrongSession) && item.unit) cbadges.appendChild(el('span', 'pill unit', item.unit));
     if (item.badge) cbadges.appendChild(el('span', 'pill new2026', '🆕 ' + item.badge));
     if (cbadges.firstChild) card.appendChild(cbadges);
     card.appendChild(el('p', 'oxstmt', item.stmt));
@@ -2199,7 +2228,7 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
     var big = el('div', 'pct', String(rate));
     big.appendChild(el('small', null, '%'));
     card.appendChild(big);
-    card.appendChild(el('div', 'st', '검문 ' + answered + ' / 전체 ' + q.ids.length + ' · 통과 ' + okN + ' · 적발 ' + badN));
+    card.appendChild(el('div', 'st', (q.mode === 'wrongnote' ? '수사파일 ' : '검문 ') + answered + ' / 전체 ' + q.ids.length + ' · 통과 ' + okN + ' · 적발 ' + badN));
     card.appendChild(el('p', 'msg', answered === 0
       ? '아직 검문한 지문이 없어요. O·X로 판단하거나 이전·다음으로 넘겨 보세요.'
       : rate === 100 ? '전부 통과했어요. 이 구역은 마무리해도 좋아요.'
@@ -2215,20 +2244,26 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
         return r && r.pick !== OX_BY_ID[id].answer;
       });
       acts.appendChild(btn('btn btn-primary', '이번에 적발된 ' + wrongIds.length + '지문 다시 검문', function () {
-        ui.ox = {
-          subject: ui.subject, mode: 'custom', order: q.order, ids: wrongIds.slice(), idx: 0, resp: {}, scored: {},
-          combo: 0, best: 0, wrongStreak: 0, anim: false, lastDelta: 0, lastPenalty: 0, done: false
-        };
+        var okGo = (q.mode === 'wrongnote')
+          ? startWrongSession(wrongIds.slice(), 0, q.subject)
+          : (ui.ox = {
+            subject: ui.subject, mode: 'custom', order: q.order, ids: wrongIds.slice(), idx: 0, resp: {}, scored: {},
+            combo: 0, best: 0, wrongStreak: 0, anim: false, lastDelta: 0, lastPenalty: 0, done: false
+          }, true);
+        if (!okGo) return;
         renderOx();
         window.scrollTo(0, 0);
       }));
       acts.lastChild.style.marginBottom = '9px';
     }
-    acts.appendChild(btn('btn btn-ghost', '같은 범위 새로 검문', function () {
+    acts.appendChild(btn('btn btn-ghost', q.mode === 'wrongnote' ? '수사파일 다시 검문' : '같은 범위 새로 검문', function () {
+      if (q.mode === 'wrongnote') { restartWrongSession(q); return; }
       startOx(); renderOx(); window.scrollTo(0, 0);
     }));
     acts.lastChild.style.marginBottom = '9px';
-    acts.appendChild(btn('btn btn-line', '오답 수사파일 보기', function () { go('wrong'); }));
+    acts.appendChild(btn('btn btn-line', q.mode === 'wrongnote' ? '← 오답노트로' : '오답 수사파일 보기', function () {
+      if (q.mode === 'wrongnote') leaveWrongSession(); else go('wrong');
+    }));
     root.appendChild(acts);
   }
 
@@ -2382,27 +2417,81 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
   /* =========================================================
      8. 오답 수사파일
      ========================================================= */
+  /* 🚨 오답 재수사 전용 세션 — 수사파일에 담긴 지문 목록만을 풀기 리스트로 삼는다 */
+  function startWrongSession(ids, startIdx, subject) {
+    var list = (ids || []).filter(function (id) { return !!OX_BY_ID[id]; });
+    if (!list.length) { toast('수사파일에 담긴 지문이 없어요'); return false; }
+    var i = Math.max(0, Math.min(list.length - 1, (startIdx || 0)));
+    ui.ox = {
+      subject: subject || ui.subject,
+      mode: 'wrongnote',
+      order: 'seq',
+      ids: list,
+      idx: i,
+      resp: {},
+      scored: {},
+      combo: 0,
+      best: 0,
+      wrongStreak: 0,
+      anim: false,
+      lastDelta: 0,
+      lastPenalty: 0,
+      done: false
+    };
+    return true;
+  }
+
+  /* 재수사 모드 상단 헤더 (상단 고정 바) */
+  function wrongModeBar(q) {
+    var bar = el('div', 'wnmode');
+    var tx = el('div', 'wnmode-tx');
+    tx.appendChild(el('b', null, '🚨 오답 재수사 모드'));
+    tx.appendChild(el('span', null, '수사파일 ' + q.ids.length + '지문만 이어서 검문'));
+    bar.appendChild(tx);
+    var btns = el('div', 'wnmode-btns');
+    btns.appendChild(btn('btn btn-line btn-sm', '↻', function () {
+      restartWrongSession(q);
+    }, { 'aria-label': '수사파일 처음부터 다시 검문' }));
+    btns.appendChild(btn('btn btn-line btn-sm', '← 오답노트로', leaveWrongSession, { 'aria-label': '오답노트로 돌아가기' }));
+    bar.appendChild(btns);
+    return bar;
+  }
+
+  /* 같은 순서로 처음부터 — 세션 중 해제한 지문은 빠진 최신 수사파일로 다시 시작 */
+  function restartWrongSession(q) {
+    var live = q.ids.filter(function (id) { return !!state.oxwrong[id]; });
+    if (!live.length || !startWrongSession(live, 0, q.subject)) { leaveWrongSession(); return; }
+    renderOx();
+    window.scrollTo(0, 0);
+  }
+
+  /* 수사파일로 돌아가면 세션은 끝난다 — 목록은 해제한 지문이 빠진 최신 상태로 다시 그린다 */
+  function leaveWrongSession() {
+    ui.ox = null;
+    go('wrong');
+  }
+
   function renderWrong() {
     var root = $('#view-wrong');
     clear(root);
 
     var oxw = oxWrongIn(ui.subject);
+    var groups = groupByUnit(oxw);
+    /* 화면에 보이는 순서(단원별) 그대로가 재수사 리스트가 된다 */
+    var flat = [];
+    groups.forEach(function (g) { g.items.forEach(function (it) { flat.push(it); }); });
+    var scopeName = ui.subject === 'all' ? '오답' : SUBJ_NAME[ui.subject] + ' 오답';
 
     var head = el('section', 'card');
     head.appendChild(el('p', 'eyebrow', 'CASE FILE'));
     head.appendChild(el('h3', null, '오답 수사파일 · ' + SUBJ_NAME[ui.subject]));
-    head.appendChild(el('p', 'muted', '내가 🚨 오답 재수사로 표시한 지문 ' + oxw.length + '건 · 단원별로 모아 두었어요. 지문을 누르면 바로 재검문합니다.'));
+    head.appendChild(el('p', 'muted', '내가 🚨 오답 재수사로 표시한 지문 ' + oxw.length + '건 · 단원별로 모아 두었어요. 지문을 누르면 이 수사파일 지문들만 그 자리부터 이어서 검문합니다.'));
 
     var acts = el('div', 'row');
     acts.style.marginTop = '12px';
-    acts.appendChild(btn('btn btn-primary', 'OX 적발 재검문 (' + oxw.length + ')', function () {
-      var ids = oxw.map(function (o) { return o.id; });
-      ui.ox = {
-        subject: ui.subject, mode: 'custom', order: 'seq', ids: ids, idx: 0, resp: {}, scored: {}, combo: 0, best: 0,
-        wrongStreak: 0, anim: false, lastDelta: 0, lastPenalty: 0, done: ids.length === 0
-      };
-      go('ox');
-    }, oxw.length ? null : { disabled: 'disabled' }));
+    acts.appendChild(btn('btn btn-primary', '🚨 ' + scopeName + ' 전체 풀기 (' + flat.length + ')', function () {
+      if (startWrongSession(flat.map(function (o) { return o.id; }), 0, ui.subject)) go('ox');
+    }, flat.length ? null : { disabled: 'disabled' }));
     head.appendChild(acts);
     root.appendChild(head);
 
@@ -2416,7 +2505,7 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
     if (oxw.length) {
       var secO = el('section', 'card sec');
       secO.appendChild(el('h3', null, 'OX 적발 지문'));
-      groupByUnit(oxw).forEach(function (g) {
+      groups.forEach(function (g) {
         secO.appendChild(buildWrongGroup(g.name, g.items.map(function (item) {
           var row = el('div', 'wn-item wn-stack');
           var main = el('button', 'wn-main wn-card');
@@ -2425,15 +2514,11 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
           var st = state.oxstats[item.id] || {};
           main.appendChild(el('div', 'wn-meta', '오답 ' + (st.bad || 1) + '회 · 정답 ' + (item.answer ? 'O' : 'X') + ' · ' + (item.unit || '')));
           main.addEventListener('click', function () {
-            ui.ox = {
-              subject: ui.subject, mode: 'custom', order: 'seq', ids: [item.id], idx: 0, resp: {}, scored: {}, combo: 0, best: 0,
-              wrongStreak: 0, anim: false, lastDelta: 0, lastPenalty: 0, done: false
-            };
-            go('ox');
+            if (startWrongSession(flat.map(function (o) { return o.id; }), flat.indexOf(item), ui.subject)) go('ox');
           });
           row.appendChild(main);
           var foot = el('div', 'wn-foot');
-          foot.appendChild(el('span', 'wn-hint', '지문을 누르면 바로 재검문'));
+          foot.appendChild(el('span', 'wn-hint', '누르면 수사파일 ' + flat.length + '지문을 이 자리부터 이어서'));
           var acts2 = el('div', 'wn-acts');
           acts2.appendChild(btn('wn-x', '✕', function () {
             delete state.oxwrong[item.id];
