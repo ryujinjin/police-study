@@ -830,6 +830,24 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
 .rankrow.cur .rk-state{color:var(--accent);background:var(--card);border-radius:99px;padding:2px 8px}
 .rankrow.past .rk-state{color:var(--good)}
 
+/* ===== ▶ 이어풀기 (진행 위치 자동 저장) ===== */
+.resumecard{margin-bottom:12px;border:1.5px solid var(--accent-tint, #dfe8fb)}
+.resumecard .mission-hero .badge{color:var(--accent);background:var(--tint)}
+.resrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-top:1px dashed var(--line)}
+.resrow:first-of-type{border-top:0}
+.res-tx{flex:1 1 130px;min-width:0}
+.res-tx b{display:block;font-size:13px;font-weight:900;letter-spacing:-.02em;color:var(--ink);word-break:keep-all}
+.res-tx span{display:block;margin-top:2px;font-size:11px;font-weight:700;color:var(--muted);word-break:keep-all}
+.res-acts{display:flex;gap:6px;flex:0 0 auto}
+.res-acts .btn{min-height:36px;padding:8px 11px;font-size:12px;white-space:nowrap}
+@media(max-width:359px){
+  .resrow{gap:6px}
+  .res-tx{flex:1 1 100%}
+  .res-acts{width:100%}
+  .res-acts .btn{flex:1 1 0;min-width:0;padding:8px 6px;font-size:11.5px}
+}
+.unitchip .ures{display:inline-block;margin-top:6px;font-size:10.5px;font-weight:900;color:var(--accent);background:var(--tint);border-radius:99px;padding:2px 8px}
+
 </style>
 </head>
 <body>
@@ -1019,12 +1037,14 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
   };
 
   /* ---- 포인트 · 계급 · 오늘의 임무 ---- */
-  var P_OX_OK = 3;       // OX 검문 정답 기본
-  var P_COMBO2 = 2;      // 3연속 정답부터 콤보 보너스
-  var P_COMBO3 = 4;      // 5연속 정답부터 콤보 보너스
+  var P_OX_OK = 2;       // OX 검문 정답 기본
+  var P_COMBO2 = 1;      // 3연속 정답부터 콤보 보너스
+  var P_COMBO3 = 2;      // 5연속 정답부터 콤보 보너스
+  var P_COMBO10 = 5;     // 10연속 정답부터 콤보 보너스
   var P_NEWS = 5;        // 경찰 뉴스 읽기
-  var P_BAD = -5;        // 2연속 오답부터 1문항당
-  var P_BONUS = 25;      // 오늘의 임무 완수(특진 가산점)
+  var P_BAD = -6;        // 2연속 오답
+  var P_BAD3 = -10;      // 3연속 이상 오답
+  var P_BONUS = 20;      // 오늘의 임무 완수(특진 가산점)
   var GOAL_OX = 10;      // OX 지문 10제 검문
   var GOAL_NEWS = 2;     // 경찰 뉴스 2건 읽기
 
@@ -1033,16 +1053,16 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
 
   var RANKS = [
     { name: '순경', pts: 0, star: 1, flower: 0 },
-    { name: '경장', pts: 100, star: 2, flower: 0 },
-    { name: '경사', pts: 250, star: 3, flower: 0 },
-    { name: '경위', pts: 500, star: 4, flower: 0 },
-    { name: '경감', pts: 850, star: 0, flower: 1 },
-    { name: '경정', pts: 1300, star: 0, flower: 2 },
-    { name: '총경', pts: 1900, star: 0, flower: 3 },
-    { name: '경무관', pts: 2600, star: 1, flower: 1 },
-    { name: '치안감', pts: 3500, star: 2, flower: 1 },
-    { name: '치안정감', pts: 4600, star: 3, flower: 1 },
-    { name: '치안총감', pts: 6000, star: 4, flower: 1 }
+    { name: '경장', pts: 300, star: 2, flower: 0 },
+    { name: '경사', pts: 800, star: 3, flower: 0 },
+    { name: '경위', pts: 1500, star: 4, flower: 0 },
+    { name: '경감', pts: 2500, star: 0, flower: 1 },
+    { name: '경정', pts: 4000, star: 0, flower: 2 },
+    { name: '총경', pts: 6000, star: 0, flower: 3 },
+    { name: '경무관', pts: 8500, star: 1, flower: 1 },
+    { name: '치안감', pts: 11500, star: 2, flower: 1 },
+    { name: '치안정감', pts: 15000, star: 3, flower: 1 },
+    { name: '치안총감', pts: 20000, star: 4, flower: 1 }
   ];
 
   var QUOTES = [
@@ -1114,6 +1134,7 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
       pts: 0,
       rankSeen: 0,
       day: null,      // { d, ox:{}, news:{}, bonus, earn }
+      oxprog: {},     // OX 이어풀기: 'unit|단원명' / 'random|과목' → { ids, idx, resp, ... }
       settings: { subject: 'all', order: 'seq', oxMode: 'unit' }
     };
   }
@@ -1142,6 +1163,7 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
           earn: (typeof p.day.earn === 'number' && isFinite(p.day.earn)) ? p.day.earn : 0
         };
       }
+      if (p.oxprog && typeof p.oxprog === 'object' && !Array.isArray(p.oxprog)) s.oxprog = p.oxprog;
       if (p.settings && typeof p.settings === 'object') {
         if (typeof p.settings.subject === 'string') s.settings.subject = p.settings.subject;
         if (p.settings.order === 'shuffle' || p.settings.order === 'seq') s.settings.order = p.settings.order;
@@ -1435,7 +1457,6 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
   function go(tab) {
     if (TABS.indexOf(tab) < 0) tab = 'home';
     ui.tab = tab;
-    if (tab === 'ox' && !ui.ox) startOx();
     renderAll();
     window.scrollTo(0, 0);
   }
@@ -1817,6 +1838,125 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
     };
   }
 
+  /* ---- ▶ 이어풀기: 과목·모드(·단원)별 진행 위치 자동 저장 ---- */
+  function progKey(subject, mode, unit) {
+    return mode === 'unit' ? ('unit|' + (unit || '')) : ('random|' + subject);
+  }
+
+  function cleanProg(p) {
+    if (!p || !Array.isArray(p.ids) || !p.ids.length) return null;
+    var ids = p.ids.filter(function (id) { return !!OX_BY_ID[id]; });
+    if (!ids.length || ids.length !== p.ids.length) return null;
+    var resp = {};
+    ids.forEach(function (id) {
+      var r = (p.resp || {})[id];
+      if (r && (r.pick === true || r.pick === false)) resp[id] = { pick: r.pick };
+    });
+    var idx = Math.max(0, Math.min(ids.length - 1, parseInt(p.idx, 10) || 0));
+    if (Object.keys(resp).length === 0 && idx === 0) return null;
+    return {
+      ids: ids, idx: idx, resp: resp,
+      scored: (p.scored && typeof p.scored === 'object') ? p.scored : {},
+      combo: parseInt(p.combo, 10) || 0,
+      best: parseInt(p.best, 10) || 0,
+      wrongStreak: parseInt(p.wrongStreak, 10) || 0,
+      unit: p.unit || '', subject: p.subject || '', ts: Number(p.ts) || 0
+    };
+  }
+
+  function getProgress(subject, mode, unit) {
+    var all = state.oxprog || {};
+    return cleanProg(all[progKey(subject, mode, unit)]);
+  }
+
+  function saveProgress(q) {
+    if (!q || q.mode === 'wrongnote' || !q.ids || !q.ids.length) return;
+    if (!state.oxprog || typeof state.oxprog !== 'object') state.oxprog = {};
+    var key = progKey(q.subject, q.mode, q.unit);
+    var answered = oxAnswered(q);
+    var lastAnswered = !!q.resp[q.ids[q.ids.length - 1]];
+    var finished = !!q.done || (q.idx >= q.ids.length - 1 && lastAnswered);
+    if (finished || (answered === 0 && q.idx === 0)) {
+      if (state.oxprog[key]) { delete state.oxprog[key]; saveState(); }
+      return;
+    }
+    state.oxprog[key] = {
+      subject: q.subject, mode: q.mode, unit: q.unit || '',
+      ids: q.ids.slice(), idx: q.idx, resp: q.resp, scored: q.scored,
+      combo: q.combo || 0, best: q.best || 0, wrongStreak: q.wrongStreak || 0,
+      ts: Date.now()
+    };
+    saveState();
+  }
+
+  function dropProgress(subject, mode, unit) {
+    if (!state.oxprog) return;
+    var key = progKey(subject, mode, unit);
+    if (state.oxprog[key]) { delete state.oxprog[key]; saveState(); }
+  }
+
+  function resumeOx(subject, mode, unit) {
+    var p = getProgress(subject, mode, unit);
+    if (!p) return false;
+    ui.ox = {
+      subject: ui.subject,
+      mode: mode,
+      unit: p.unit || unit || '',
+      order: state.settings.order,
+      ids: p.ids,
+      idx: p.idx,
+      resp: p.resp,
+      scored: p.scored,
+      combo: p.combo,
+      best: p.best,
+      wrongStreak: p.wrongStreak,
+      anim: false,
+      lastDelta: 0,
+      lastPenalty: 0,
+      done: false
+    };
+    renderOx();
+    window.scrollTo(0, 0);
+    return true;
+  }
+
+  function resumeLabel(p) {
+    return '▶ 이어풀기 (' + (p.idx + 1) + '/' + p.ids.length + ')';
+  }
+
+  /* 이어풀기 카드 — 단원 목록·랜덤 시작 화면 공용 */
+  function oxResumeCard(rows, title, sub) {
+    var card = el('section', 'card sec resumecard');
+    var h = el('div', 'mission-hero');
+    h.appendChild(el('span', 'flag', '▶'));
+    h.appendChild(el('h3', null, title));
+    h.appendChild(el('span', 'badge', '자동 저장'));
+    card.appendChild(h);
+    if (sub) card.appendChild(el('p', 'muted', sub));
+    rows.forEach(function (row) {
+      var line = el('div', 'resrow');
+      var tx = el('div', 'res-tx');
+      tx.appendChild(el('b', null, row.name));
+      tx.appendChild(el('span', null, (row.p.idx + 1) + ' / ' + row.p.ids.length + '번째 지문에서 멈췄어요'));
+      line.appendChild(tx);
+      var acts = el('div', 'res-acts');
+      acts.appendChild(btn('btn btn-primary btn-sm', resumeLabel(row.p), function () {
+        ui.oxUnit = row.p.unit || ui.oxUnit;
+        resumeOx(ui.subject, row.mode, row.unit);
+      }));
+      acts.appendChild(btn('btn btn-line btn-sm', '처음부터', function () {
+        dropProgress(ui.subject, row.mode, row.unit);
+        ui.oxUnit = row.unit || '';
+        startOx();
+        renderOx();
+        window.scrollTo(0, 0);
+      }));
+      line.appendChild(acts);
+      card.appendChild(line);
+    });
+    return card;
+  }
+
   function oxAnswered(q) {
     var n = 0;
     q.ids.forEach(function (id) { if (q.resp[id]) n += 1; });
@@ -1830,7 +1970,7 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
       return {
         kind: 'base',
         line: OX_LINES[q.idx % OX_LINES.length],
-        sub: '정답 +' + P_OX_OK + 'P · 3연속부터 콤보 +' + P_COMBO2 + 'P · 2연속 오답부터 ' + P_BAD + 'P'
+        sub: '정답 +' + P_OX_OK + 'P · 3연속 +' + P_COMBO2 + 'P · 5연속 +' + P_COMBO3 + 'P · 10연속 +' + P_COMBO10 + 'P 콤보 · 2연속 오답 ' + P_BAD + 'P'
       };
     }
     if (ok) {
@@ -1838,7 +1978,7 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
       var bonus = oxComboBonus(c);
       return {
         kind: 'good',
-        line: c >= 5 ? c + '연속 검문 통과! 콤보 +' + bonus + 'P 🔥' : (c >= 3 ? c + '연속 검문 통과! 콤보 +' + bonus + 'P 🔥' : '통과! 지문 하나 정리됐어'),
+        line: c >= 10 ? c + '연속 검문 통과! 콤보 +' + bonus + 'P 🔥' : (c >= 5 ? c + '연속 검문 통과! 콤보 +' + bonus + 'P 🔥' : (c >= 3 ? c + '연속 검문 통과! 콤보 +' + bonus + 'P 🔥' : '통과! 지문 하나 정리됐어')),
         sub: '정답 +' + (P_OX_OK + bonus) + 'P' + (bonus ? ' (기본 ' + P_OX_OK + ' + 콤보 ' + bonus + ')' : '') +
           ' · 오늘 검문 ' + n + '/' + GOAL_OX + ' · 보유 ' + fmt(state.pts || 0) + 'P'
       };
@@ -1851,8 +1991,9 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
     };
   }
 
-  /* 콤보 보너스: 3연속 +2P · 5연속 +4P */
+  /* 콤보 보너스: 3연속 +1P · 5연속 +2P · 10연속 +5P */
   function oxComboBonus(combo) {
+    if (combo >= 10) return P_COMBO10;
     if (combo >= 5) return P_COMBO3;
     if (combo >= 3) return P_COMBO2;
     return 0;
@@ -1861,6 +2002,7 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
   function oxUnitCard(u) {
     var done = u.ids.filter(function (id) { return !!state.oxstats[id]; }).length;
     var ok = u.ids.filter(function (id) { var st = state.oxstats[id]; return st && st.ok; }).length;
+    var pr = getProgress(ui.subject, 'unit', u.name);
     var b = el('button', 'unitchip');
     b.type = 'button';
     b.appendChild(el('span', 'uname', u.name));
@@ -1872,10 +2014,12 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
     bar.appendChild(fill);
     b.addEventListener('click', function () {
       ui.oxUnit = u.name;
+      dropProgress(ui.subject, 'unit', u.name);
       startOx();
       renderOx();
       window.scrollTo(0, 0);
     });
+    if (pr) b.appendChild(el('span', 'ures', '▶ ' + (pr.idx + 1) + '/' + pr.ids.length + ' 저장됨'));
     return b;
   }
 
@@ -1888,6 +2032,20 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
     h.appendChild(el('span', 'badge', SUBJ_NAME[ui.subject] + ' ' + units.reduce(function (n, u) { return n + u.ids.length; }, 0) + '지문'));
     head.appendChild(h);
     head.appendChild(el('p', 'muted', '큰 목차 단원을 골라 그 단원 기출 지문만 검문합니다.'));
+
+    /* 이어풀기 기록 (현재 과목 범위) */
+    var rows = [];
+    Object.keys(state.oxprog || {}).forEach(function (k) {
+      if (k.indexOf('unit|') !== 0) return;
+      var p = cleanProg(state.oxprog[k]);
+      if (!p) return;
+      var first = OX_BY_ID[p.ids[0]];
+      if (ui.subject !== 'all' && (!first || first.subjectId !== ui.subject)) return;
+      rows.push({ name: p.unit || (first ? first.unit : '단원'), p: p, mode: 'unit', unit: p.unit || (first ? first.unit : ''), ts: p.ts });
+    });
+    rows.sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+    if (rows.length) root.appendChild(oxResumeCard(rows.slice(0, 3), '이어서 풀던 검문', '나가기 전까지 푼 위치와 답안이 그대로 저장돼 있어요.'));
+
     var grid = el('div', 'unitgrid');
     units.forEach(function (u) { grid.appendChild(oxUnitCard(u)); });
     head.appendChild(grid);
@@ -1933,6 +2091,7 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
         }));
       }
       bar.appendChild(btn('btn btn-line btn-sm', '↻ 처음부터', function () {
+        if (ui.ox && ui.ox.mode !== 'wrongnote') dropProgress(ui.ox.subject, ui.ox.mode, ui.ox.unit);
         startOx();
         renderOx();
         window.scrollTo(0, 0);
@@ -1942,9 +2101,21 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
       if (mode === 'unit' && !ui.oxUnit) { renderOxUnitPicker(root); return; }
     }
 
-    if (!ui.ox || ui.ox.subject !== ui.subject ||
+    var stale = !ui.ox || ui.ox.subject !== ui.subject ||
         (ui.ox.mode !== 'custom' && ui.ox.mode !== 'wrongnote' && (ui.ox.mode !== mode ||
-          (mode === 'unit' && ui.ox.unit !== ui.oxUnit)))) startOx();
+          (mode === 'unit' && ui.ox.unit !== ui.oxUnit)));
+    if (stale) {
+      /* 랜덤 모드에 저장된 진행이 있으면 바로 시작하지 않고 이어풀기/처음부터를 고르게 한다 */
+      if (mode === 'random') {
+        var rp = getProgress(ui.subject, 'random');
+        if (rp) {
+          root.appendChild(oxResumeCard([{ name: '랜덤 검문 · ' + rp.ids.length + '지문', p: rp, mode: 'random', unit: '' }],
+            '이어서 풀던 검문', '나가기 전까지 푼 위치와 답안이 그대로 저장돼 있어요.'));
+          return;
+        }
+      }
+      startOx();
+    }
     var q = ui.ox;
     var isWrongSession = q.mode === 'wrongnote';
 
@@ -2046,6 +2217,7 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
       function () {
         if (q.idx <= 0) return;
         q.idx -= 1; q.anim = false; q.lastDelta = 0; q.lastPenalty = 0;
+        saveProgress(q);
         renderOx(); window.scrollTo(0, 0);
       },
       (q.idx + 1) + ' / ' + q.ids.length,
@@ -2054,6 +2226,7 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
         if (q.idx + 1 >= q.ids.length) q.done = true;
         else q.idx += 1;
         q.anim = false; q.lastDelta = 0; q.lastPenalty = 0;
+        saveProgress(q);
         renderOx(); window.scrollTo(0, 0);
       },
       retry
@@ -2197,7 +2370,8 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
       } else {
         q.combo = 0;
         q.wrongStreak = (q.wrongStreak || 0) + 1;
-        if (q.wrongStreak >= 2) { penalty = addPoints(P_BAD); delta = penalty; }
+        if (q.wrongStreak >= 3) { penalty = addPoints(P_BAD3); delta = penalty; }
+        else if (q.wrongStreak >= 2) { penalty = addPoints(P_BAD); delta = penalty; }
       }
       q.lastDelta = delta;
       q.lastPenalty = penalty;
@@ -2207,6 +2381,7 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
 
     checkMission();
     saveState();
+    saveProgress(q);
     checkPromotion();
     renderChips();
     renderOx();
@@ -2624,8 +2799,8 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
 
     var rule = el('section', 'card sec');
     rule.appendChild(el('h3', null, '포인트 규칙'));
-    rule.appendChild(kv('OX 정답', '+' + P_OX_OK + 'P · 3연속부터 +' + P_COMBO2 + 'P 콤보 · 5연속부터 +' + P_COMBO3 + 'P 콤보'));
-    rule.appendChild(kv('연속 오답', '2연속 오답부터 문항당 ' + P_BAD + 'P (하한 0P)'));
+    rule.appendChild(kv('OX 정답', '+' + P_OX_OK + 'P · 3연속 +' + P_COMBO2 + 'P · 5연속 +' + P_COMBO3 + 'P · 10연속 +' + P_COMBO10 + 'P 콤보'));
+    rule.appendChild(kv('연속 오답', '2연속 ' + P_BAD + 'P · 3연속부터 문항당 ' + P_BAD3 + 'P (하한 0P)'));
     rule.appendChild(kv('경찰 뉴스', '읽을 때마다 +' + P_NEWS + 'P'));
     rule.appendChild(kv('오늘의 순찰 임무', 'OX ' + GOAL_OX + '제 + 뉴스 ' + GOAL_NEWS + '건 완수 시 +' + P_BONUS + 'P'));
     body.appendChild(rule);
@@ -2664,8 +2839,8 @@ html[data-theme="dark"] .rankbtn{background:rgba(255,255,255,.08);color:#c8d6ff}
     rankCard.appendChild(kv('다음 승진', nx ? (nx.name + ' · ' + fmt(nx.pts) + 'P까지 ' + fmt(nx.pts - pts) + 'P 남음') : '없음 · 최고 계급'));
     rankCard.appendChild(kv('오늘의 임무', 'OX 검문 ' + Math.min(d.ox, GOAL_OX) + '/' + GOAL_OX +
       ' · 뉴스 읽기 ' + Math.min(d.news, GOAL_NEWS) + '/' + GOAL_NEWS + (d.bonus ? ' · 완수' : '')));
-    rankCard.appendChild(kv('포인트 규칙', 'OX 정답 +' + P_OX_OK + 'P(3연속 +' + P_COMBO2 + 'P·5연속 +' + P_COMBO3 + 'P 콤보) · 뉴스 읽기 +' + P_NEWS +
-      'P · 2연속 오답부터 문항당 ' + P_BAD + 'P · 오늘의 임무 완수 +' + P_BONUS + 'P'));
+    rankCard.appendChild(kv('포인트 규칙', 'OX 정답 +' + P_OX_OK + 'P(3연속 +' + P_COMBO2 + 'P·5연속 +' + P_COMBO3 + 'P·10연속 +' + P_COMBO10 + 'P 콤보) · 뉴스 읽기 +' + P_NEWS +
+      'P · 2연속 오답 ' + P_BAD + 'P·3연속부터 ' + P_BAD3 + 'P · 오늘의 임무 완수 +' + P_BONUS + 'P'));
     body.appendChild(rankCard);
 
     var sum = el('section', 'card sec');
